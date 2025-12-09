@@ -28,7 +28,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe_t_file, reim_file):
+def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe_t_file, reim_file,
+                        door_tat_min, door_tat_max, fba_tat_min):
     """Process all uploaded files and perform the analysis"""
     try:
         # Load Refund Data
@@ -45,10 +46,10 @@ def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe
         
         # Convert date and calculate Date_Diff
         Refund_data['Date1'] = pd.to_datetime(
-        Refund_data['date/time'],
-        errors="coerce",
-        dayfirst=True,
-        format="mixed"
+            Refund_data['date/time'],
+            errors="coerce",
+            dayfirst=True,
+            format="mixed"
         ).dt.date
 
         Refund_data['Today'] = datetime.today().date()
@@ -124,11 +125,12 @@ def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe
             )
         ].copy()
         
+        # 🔹 Use dynamic TAT filters instead of fixed values
         filtered_df_TAT = filtered_doorship[
-            filtered_doorship["Date_Diff"].between(50, 75, inclusive="both")
+            filtered_doorship["Date_Diff"].between(door_tat_min, door_tat_max, inclusive="both")
         ].copy()
         
-        fba_return_TAT = fba_return_df[fba_return_df["Date_Diff"] >= 40].copy()
+        fba_return_TAT = fba_return_df[fba_return_df["Date_Diff"] >= fba_tat_min].copy()
         
         return {
             'main': Refund_data,
@@ -161,12 +163,45 @@ with col2:
     safe_t_file = st.file_uploader("Safe-T Claim (Excel)", type=['xlsx', 'xls'], key="safe")
     reim_file = st.file_uploader("FBA Reimbursement (CSV)", type=['csv'], key="reim")
 
+# 🔹 TAT inputs for days
+st.markdown("### ⏱️ TAT Day Filters")
+
+tat_col1, tat_col2 = st.columns(2)
+
+with tat_col1:
+    door_tat_min = st.number_input(
+        "Door Ship TAT start (days):",
+        min_value=0,
+        max_value=365,
+        value=50,
+        step=1,
+        help="Starting day value for Door Ship TAT range."
+    )
+    door_tat_max = st.number_input(
+        "Door Ship TAT end (days):",
+        min_value=door_tat_min,
+        max_value=365,
+        value=75,
+        step=1,
+        help="Ending day value for Door Ship TAT range."
+    )
+
+with tat_col2:
+    fba_tat_min = st.number_input(
+        "FBA Return TAT minimum days:",
+        min_value=0,
+        max_value=365,
+        value=40,
+        step=1,
+        help="Filter FBA Return records with Date_Diff ≥ this number of days."
+    )
+
 # Process Button
 all_files = [refund_file, qwt_file, returns_file, bulk_rto_file, safe_t_file, reim_file]
 if all(all_files):
     if st.button("🔍 Analyze Refund Data", type="primary", use_container_width=True):
         with st.spinner("Processing data..."):
-            results = process_refund_data(*all_files)
+            results = process_refund_data(*all_files, door_tat_min, door_tat_max, fba_tat_min)
             
             if results:
                 st.success("✅ Analysis completed successfully!")
@@ -182,11 +217,17 @@ if all(all_files):
                 
                 with col2:
                     st.metric("FBA Returns (Missing)", f"{len(results['fba_return']):,}")
-                    st.metric("Door Ship (50-75 days TAT)", f"{len(results['doorship_tat']):,}")
+                    st.metric(
+                        f"Door Ship ({door_tat_min}-{door_tat_max} days TAT)",
+                        f"{len(results['doorship_tat']):,}"
+                    )
                 
                 with col3:
                     st.metric("Safe-T Claims", f"{results['main']['Safe T Claim'].notna().sum():,}")
-                    st.metric("FBA Return (≥40 days TAT)", f"{len(results['fba_return_tat']):,}")
+                    st.metric(
+                        f"FBA Return (≥{int(fba_tat_min)} days TAT)",
+                        f"{len(results['fba_return_tat']):,}"
+                    )
                 
                 # Download Buttons
                 st.markdown("### 💾 Download Reports")
@@ -209,7 +250,7 @@ if all(all_files):
                     with pd.ExcelWriter(buffer2, engine='openpyxl') as writer:
                         results['doorship_tat'].to_excel(writer, index=False, sheet_name='Door Ship TAT')
                     st.download_button(
-                        "⬇️ Download Door Ship TAT",
+                        f"⬇️ Download Door Ship TAT ({door_tat_min}-{door_tat_max}d)",
                         buffer2.getvalue(),
                         "door_ship_tat.xlsx",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -220,7 +261,7 @@ if all(all_files):
                     with pd.ExcelWriter(buffer3, engine='openpyxl') as writer:
                         results['fba_return_tat'].to_excel(writer, index=False, sheet_name='FBA Return TAT')
                     st.download_button(
-                        "⬇️ Download FBA Return TAT",
+                        f"⬇️ Download FBA Return TAT (≥{int(fba_tat_min)}d)",
                         buffer3.getvalue(),
                         "fba_return_tat.xlsx",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
