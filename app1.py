@@ -28,15 +28,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def read_any_file(file, sheet_name=None):
+    """Read CSV or Excel safely, with optional sheet_name for Excel"""
+    if file.name.lower().endswith(".csv"):
+        return pd.read_csv(file)
+    else:
+        if sheet_name:
+            return pd.read_excel(file, sheet_name=sheet_name)
+        return pd.read_excel(file)
+
 def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe_t_file, reim_file,
                         door_tat_min, door_tat_max, fba_tat_min):
     """Process all uploaded files and perform the analysis"""
     try:
-        def read_any_file(file):
-            if file.name.lower().endswith(".csv"):
-                return pd.read_csv(file)
-            else:
-                return pd.read_excel(file)
         # Load Refund Data
         Refund_data = read_any_file(refund_file)
         
@@ -277,5 +281,6 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("*Developed for Amazon Seller Refund Analysis By IBI*")
+
 
 
