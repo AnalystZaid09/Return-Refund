@@ -88,7 +88,7 @@ def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe
         Refund_data.drop(columns="__key", inplace=True)
         
         # Load Bulk RTO and perform Seller Flex Return lookup
-        bulk_rto = read_any_file(bulk_rto_file, sheet_name="All")
+        bulk_rto = read_any_file(bulk_rto_file, sheet_name="All" if not bulk_rto_file.name.lower().endswith(".csv") else None)
         Refund_data["__key"] = Refund_data["Door Ship (Seller Flex)"].astype(str).str.strip().str.upper()
         bulk_rto["__key"] = bulk_rto["Order Id"].astype(str).str.strip().str.upper()
         right_key = bulk_rto[["__key", "Order Id"]].drop_duplicates()
@@ -97,7 +97,7 @@ def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe
         Refund_data.drop(columns="__key", inplace=True)
         
         # Load Safe-T Claim and perform lookup
-        safeT = read_any_file(safe_t_file, sheet_name="Sheet1")
+        safeT = read_any_file(safe_t_file, sheet_name="Sheet1" if not safe_t_file.name.lower().endswith(".csv") else None)
         lookup_col = safeT.columns[3]
         Refund_data.loc[:, "__key"] = Refund_data["Door Ship (Seller Flex)"].astype(str).str.strip().str.upper()
         safeT.loc[:, "__key"] = safeT[lookup_col].astype(str).str.strip().str.upper()
@@ -281,6 +281,7 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("*Developed for Amazon Seller Refund Analysis By IBI*")
+
 
 
 
