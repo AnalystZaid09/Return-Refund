@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import io
 
-st.set_page_config(page_title="Amazon Refund Analyzer", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Amazon Refund Cross Check", page_icon="📊", layout="wide")
 
 # Custom CSS
 st.markdown("""
@@ -154,7 +154,7 @@ def process_refund_data(refund_file, qwt_file, returns_file, bulk_rto_file, safe
         return None
 
 # Main App
-st.markdown('<div class="main-header">📊 Amazon Refund Data Analyzer</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">📊 Amazon Refund Cross Check</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Upload your files to analyze refund and return data</div>', unsafe_allow_html=True)
 
 # File Upload Section
@@ -281,6 +281,7 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("*Developed for Amazon Seller Refund Analysis By IBI*")
+
 
 
 
